@@ -271,21 +271,6 @@ def user_project_vote_power(uid: UserUUID,
 
 ### Vote Neurons to be included on the PoC
 
-> Section Status: Pending Review 🛠️
-
-- Module 1: Quorum Delegation
-- Module 2: SDF Assigned Reputation: "Badges"
-- Module 3: Prior Voting History
-- Module 4: Trust Graph Bonus, see [SCF Trust Bonus](https://hackmd.io/RQ-okLIHRduX0SL_NSbImQ)
-
-#### SDF Assigned Reputation
-
-> Section Status: Not done ⚠️
-
-#### Trust Graph Bonus
-
-> Section Status: Not done ⚠️
-
 #### Quorum Delegation
 
 > Section Status: Done ✅
@@ -294,8 +279,7 @@ Quorum Delegation is an novel delegation scheme inspired by Stellar Consensus Pr
 
 An user can select up to 10 other UUIDs (order sensitive) for creating his Quorum Candidates. The first 5 candidates that did opt for Voting during the Round is going to be his Actual Quorum. Delegating to Users that are Delegating (re-delegation) is not allowed.
 
-Depending on the Quorum Consensus, the individual user will automatically vote Yes, No or Abstain for an given project. In order to the vote to happen, a Quorum should
-have an active participation of at least 2/3 (Quorum Participation Threshold) of the members towards that given project (eg. 2/3 of the members did actively vote yes/no/abstain rather than ignoring).
+Depending on the Quorum Consensus, the individual user will automatically vote Yes, No or Abstain for an given project. In order to the vote to happen, a Quorum should have an active participation of at least 2/3 (Quorum Participation Threshold) of the members towards that given project (eg. 2/3 of the members did actively vote yes/no/abstain rather than ignoring).
 
 If the Quorum Participation Threshold is met, then the Vote Decision for that individual user is going to be the simple majority of the Quorum Members decisions. If there's no majority, then the decision is to Abstain.
 
@@ -413,6 +397,72 @@ def quorum_delegate_result(user_id,
     else:
         return Vote.Absent
 
+```
+
+#### SDF Assigned Reputation
+
+> Section Status: Not done ⚠️
+
+#### Prior Voting History
+
+> Section Status: Not done ⚠️
+
+#### Trust Graph Bonus
+
+> Section Status: Done ✅
+
+The Trust Graph Bonus is an module being developed that will incentivize community members that are trusted and central on the ecossystem network. Several requirements have been collected so far and the final form of it is still being researched and discussed.
+
+For the PoC we've selected an Scaled Canonical PageRank algorithm for the Trust Bonus function. This is justified by its familiarity (it's relatively well-known through the technical community) and simplicity (the algorithm is relatively simple and several out-of-the-box implementations are available). As of now, it uses an damping factor of 0.85 and uniform seeding across the trust graph. The results are min-max normalized, which means that the raw trust scores per user will range between 0 and 1.
+
+We do expect that choice to be updated with time, as alternatives have been explored, like using an Aggregated Personalizing PageRank as described on the Trust Bonus document. It's also possible that new formulations will appear as we build the testing apparatus and refine the forms against the desirables & influx of data.
+
+```python=3.9
+
+# 1) Definitions
+
+# Key is the Trusting User and the Value Set are the Users being Trusted
+TrustGraph = dict[UserUUID, list[UserUUID]]
+
+def compute_trust_score(raw_graph: dict) -> dict[UserUUID, float]
+    """
+    Computes an Trust Score as based on the Canonical Page Rank.
+
+    This is done by computing the Page Rank on the whole Trust Graph
+    with default arguments and scaling the results through MinMax.
+    
+    The resulting scores will be contained between 0.0 and 1.0
+    """
+    G = nx.from_dict_of_lists(raw_graph,
+                              create_using=nx.DiGraph)
+
+    pagerank_values = nx.pagerank(G, 
+                                  alpha=0.85, 
+                                  personalization=None, 
+                                  maxiter=100,
+                                  tol=1e-6,
+                                  nstart=None,
+                                  weight=None,
+                                  dangling=None)
+    
+    max_value = max(pagerank_values.values())
+    min_value = min(pagerank_values.values())
+    trust_score = {user: (value - min_value) / (max_value - min_value)
+                   for (user, value) in pagerank_values.items()}
+    return trust_score
+
+# 2) Backend inputs
+
+TRUST_GRAPH = {'A': ['B', 'C'], 'B': ['C'], 'C': ['A']}
+TRUST_BONUS_PER_USER = compute_trust_score(TRUST_GRAPH)
+
+# 3) Implementing an Oracle
+
+def trust_score(user_id: UserUUID, _2, _3) -> VotingPower:
+    """
+    Oracle for the Trust Bonus.
+    """
+    return TRUST_BONUS_PER_USER[user_id]
 ```
 
 ## Resources
