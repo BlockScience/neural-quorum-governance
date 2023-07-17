@@ -100,10 +100,9 @@ Weight = callable[[VotingPower], VotingPower]
 OracleFunction = callable[[UserUUID, ProjectUUID], VotingPower]
 VoteNeuron = tuple[OracleFunction, Weight]
 Aggregator = callable[[list[VotingPower]], Voting Power]
-           
-# User Action Types
-RoundVote = dict
-Delegate = dict
+
+UserAction = tuple[str, object]
+UserActions = dict[UserUUID, UserAction]
                       
 class Vote(Enum):
     Yes = 1.0
@@ -111,22 +110,22 @@ class Vote(Enum):
     Abstain = 0.0
 
 # 2) Structural Inputs
-USERS = {'maria', 'fernando', 'giuseppe', 'sarah', 'tom', 'laura'}
+USERS = ['maria', 'fernando', 'giuseppe', 'sarah', 'tom', 'laura']
 
 PROJECTS = {'voting-mech-for-scf', 
             'quorum-voting'}
 
 # 3) Active Inputs
 USER_ACTIONS = {
-    'maria': RoundVote({'voting-mech-for-scf': Vote.Yes, 
-                        'quorum-voting': Vote.Abstain}),
-    'fernando': RoundVote({'voting-mech-for-scf': Vote.Yes}),
-    'giuseppe': RoundVote({'voting-mech-for-scf': Vote.Yes, 
-                           'quorum-voting': Vote.Yes}),
-    'sarah': RoundVote({'voting-mech-for-scf': Vote.Yes, 
-                        'quorum-voting': Vote.No}),
-    'tom': Delegate(Users),
-    'laura': Delegate({'maria', 'fernando', 'sarah', 'tom'})
+    'maria':('RoundVote', {'voting-mech-for-scf': Vote.Yes, 
+                           'quorum-voting': Vote.Abstain}),
+    'fernando': ('RoundVote', {'voting-mech-for-scf': Vote.Yes}),
+    'giuseppe': ('RoundVote', {'voting-mech-for-scf': Vote.Yes, 
+                               'quorum-voting': Vote.Yes}),
+    'sarah': ('RoundVote', {'voting-mech-for-scf': Vote.Yes, 
+                            'quorum-voting': Vote.No}),
+    'tom': ('Delegate', Users),
+    'laura': ('Delegate', ['maria', 'fernando', 'sarah', 'tom'])
 }
 
 upload_actions(USER_ACTIONS)
@@ -289,76 +288,131 @@ def user_project_vote_power(uid: UserUUID,
 
 #### Quorum Delegation
 
-> Section Status: Pending Review 🛠️
+> Section Status: Done ✅
 
-The role of Quorum Voting is to allow delegation of votes from individual users to groups of other users they trust. To reduce the risk of circularity and inactive Quorums, Users can indicate whether they expect to vote or to delegate and choose a total of 10 other (user-ranked) UUIDs for delegation. The top 5 UUIDs make up their specific Quorum. 
-A Quorum has a treshold for active participation of 66%. For the PoC, this means that 4 out of 5 Quorum members must render some vote, otherwise the delegating user will automatically abstain. 
-If the active participation threshold is reached, absolute majority is used to determine the outcome of the Quorum Vote. 
-Examples: 
-If all 5 Quorum members vote:
-* 3 Yes, 2 No -> Delegating User automatically votes Yes
-* 2 Yes, 3 No -> Delegating User automatically votes No
-If 4 Quorum members vote, while one does not:
-* 3 Yes, 1 No -> Delegating User automatically votes Yes
-* 2 Yes, 2 No -> No absolute majority, Delegating User automatically abstains. 
+Quorum Delegation is an novel delegation scheme inspired by Stellar Consensus Protocol on which individual users anonymously select groups of other users that will indirectly vote on his behalf if consensus is group-wise achieved.
 
-QV allows for users to reduce attention cost, while limiting bribery and other risks of individual delegates.
-Flow: Before a voting round starts, Users can declare whether they expect to **vote** or **delegate** in this round. 
-A User declares a set of 10 distinct other users, and ranks them. If any of the users have declared to **delegate**, the system ranks these below any voters that declared to **vote**. 
-Once 3 of the 5 Quorum UUIDs have voted in one direction (i.e. all Yes or No), the User Voting Power (uid_pid_power) is added. The Voting Power of Quorum UUIDs is not taken into account, only the decision they make on an absolute basis. If no three Quorum UUIDs vote for the same choice, the User abstains. 
+An user can select up to 10 other UUIDs (order sensitive) for creating his Quorum Candidates. The first 5 candidates that did opt for Voting during the Round is going to be his Actual Quorum. Delegating to Users that are Delegating (re-delegation) is not allowed.
 
+Depending on the Quorum Consensus, the individual user will automatically vote Yes, No or Abstain for an given project. In order to the vote to happen, a Quorum should
+have an active participation of at least 2/3 (Quorum Participation Threshold) of the members towards that given project (eg. 2/3 of the members did actively vote yes/no/abstain rather than ignoring).
 
-Some open questions are: 
-- Agreement of Quorum: 
-    - Internal Vote: Active (Yes, No) vs. Inactive (Abstain) Quorum members, this question touches on weighting of Yes and No vs only weighting Yes
-        - :checkmark : As per 06 July, we have decided that an No vote will cancel an Yes vote. Eg. Yes = +1, No = -1 and Abstain = 0.
-    - Threshold: 0.66 for now
-    - Quorum size: 5 for PoC, but could be arbitrary
-- Formation of Quorum:
-    - Anonymity: When is a Quorum chosen, and how? Users could e.g. provide their quorum through a commitment scheme that is later revealed to assign power
-    - Reactivation: Should a Quorum stay intact for several rounds, or have to be reactivated after each round? If intact for several rounds without additional actions, a decay of delegated voting power could come into play.
-- Assignment of delegated Voting Power:
-    - Option 1: User precommits his Quorum with commitment to vote with their agreement (yes, no, abstain)
-    - Option 2: Delegated Power is assigned equally to each vote of the Quorum members in agreement (making it explicit that someone delegated to them)
+If the Quorum Participation Threshold is met, then the Vote Decision for that individual user is going to be the simple majority of the Quorum Members decisions. If there's no majority, then the decision is to Abstain.
+
+Some examples can be listed as follows:
+
+- If all 5 Quorum members vote:
+  - 3 Yes, 2 No -> Delegating User automatically votes **Yes**
+  - 2 Yes, 3 No -> Delegating User automatically votes **No**
+- If 4 Quorum members vote, while one does not:
+  - 3 Yes, 1 No -> Delegating User automatically votes **Yes**
+  - 2 Yes, 2 No -> No absolute majority, Delegating User automatically **Abstains**. 
+- If 3 Quorum Members vote, while two does not:
+  - Not enough Quorum Participation, Delegating User automatically **Abstains**
+
+An example implementation that can be integrated with the above code is as follows: 
 
 ```python=
-
 # Types
 UserUUID = str
 ProjectUUID = str
-VoteDecision = {Yes, No}
+                      
+class Vote(Enum):
+    Yes = 1.0
+    No = -1.0
+    Abstain = 0.0
+
+UserAction = tuple[str, object]
+UserActions = dict[UserUUID, UserAction]
 VotingPower = float
 UserQuorum = set[UserUUID]
 
 # List of User votes towards multiple projects.
-Votes = dict[UserUUID, dict[ProjectUUID, VoteDecision]]
+UserVotes = dict[ProjectUUID, ProjectVoteDecision]
+Votes = dict[UserUUID, UserVotes]
 
-def quorum_voting_power(uid_pid_power: VotingPower,
-                        quorum: UserQuorum,
-                        direct_votes: Votes,
-                        threshold: float=0.66,
-                        default_vote: Vote=No,
-                        reject_power_factor: VotingPower=-1.0) -> VotingPower:   
+def query_user_quorum(user_id: UserUUID,
+                      max_quroum_size: int=5) -> list[UserUUID]:
     """
-    Delegator User Voting Power to be allocated for an given project.
+    Retrieves the Actual Quorum for an given delegating user.
+    Returns `None` if the User is non-delegating.
     """
-    # List of Quorum Votes, eg. [Yes, No, Absent]
-    quorum_votes = [direct_votes.get(delegator_uid).get(pid, default_vote)
-                    for delegator_uid in quorum]
-    
-    # Map Quorum Votes to numerical values, eg. Yes -> 1.0. No -> -1.0
-    quorum_numerical_votes = [1.0 if vote == Yes else 0.0
-                              for vote in quorum_votes]
-    
-    # Compute Quorum Agreement in %
-    quorum_agreement_share = sum(quorum_votes) / len(quorum_votes)
-    
-    # Return the Delegator Voting Power 
-    # if Quorum Agreement is above threshold
-    if yes_share >= threshold:
-        return uid_pid_power
+    (key, value) = USER_ACTIONS[user_id]
+    actual_quorum = None
+    if 'key' == 'Delegate':
+        actual_quorum = []
+        current_delegatees = value
+        for delegatee in current_delegatees:
+            delegatee_action = USER_ACTIONS[delegatee]
+
+            if delegatee_action == 'RoundVote':
+                actual_quorum.append(delegatee)
+
+            if len(actual_quorum) == max_quorum_size
+                return actual_quorum
+
+        return actual_quorum
     else:
-        return reject_power_factor * uid_pid_power        
+        return None
+
+
+    
+def quorum_participation(quorum: list[UserUUID],
+                         project_id: ProjectUUID,
+                         quorum_size: int=5) -> float:
+    """
+    Share of an quorum active participation towards an project.
+    """
+    active_delegatees = 0
+    for delegatee in quorum:
+        if USER_ACTIONS[delegatee].get(project_id, None) is not None:
+            active_delegatees += 1
+
+    return active_delegatees / quorum_size
+
+
+def quorum_agreement(quorum: list[UserUUID],
+                     project_id: ProjectUUID
+                     initial_agreement: float=0.0) -> float:
+    """
+    Compute the quorum agreement between active participants
+    """
+    agreement = initial_agreement
+    quorum_size = 0
+    for delegatee in quorum:
+        action = USER_ACTIONS[delegatee].get(project_id, None)
+        # Note: this logic can be different if we weight by User Voting Power
+        if action is not None:
+            quorum_size += 1
+            if action is Yes:
+                agreement += 1
+            elif action is No:
+                agreement += -1
+            else action is Absent:
+                agreement += 0
+    return agreement / quorum_size
+
+
+def quorum_delegate_result(user_id,
+                           project_id,
+                           _,
+                           participation_threshold=0.66,
+                           agreement_threshold=0.5):
+    """
+
+    """
+    quorum = query_user_quorum(user_id)
+    if quorum_participation(quroum) > participation_threshold:
+        agreement = quroum_agreement(quroum)
+        if agreement > agreement_threshold:
+            return Vote.Yes
+        elif agreement < -agreement_threshold:
+            return Vote.No
+        else:
+            return Vote.Absent
+    else:
+        return Vote.Absent
+
 ```
 
 ## Resources
