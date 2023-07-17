@@ -383,7 +383,7 @@ def quorum_delegate_result(user_id,
                            participation_threshold=0.66,
                            agreement_threshold=0.5):
     """
-
+    Oracle Module for the Quorum Delegation Neuron.
     """
     quorum = query_user_quorum(user_id)
     if quorum_participation(quroum) > participation_threshold:
@@ -401,11 +401,66 @@ def quorum_delegate_result(user_id,
 
 #### SDF Assigned Reputation
 
-> Section Status: Not done ⚠️
+> Section Status: Done ✅
+
+On this module, we assume that each Voting User will have an manually assigned Reputation Category that is stored elsewhere (either on an database served by an API, or stored as an message on the ledger). The bonus itself is assigned on the Oracle function logic, which maps the categories to numbers.
+
+```python=
+class ReputationCategory(Enum):
+    Excellent = 4
+    VeryGood = 3
+    Good = 2
+    Average = 1
+    Poor = 0
+    Uncategorized = -1
+
+
+REPUTATION_SCORE_MAP = {
+    ReputationCategory.Excellent: 0.3,
+    ReputationCategory.VeryGood: 0.2,
+    ReputationCategory.Good: 0.1,
+    ReputationCategory.Average: 0.05,
+    ReputationCategory.Poor: 0.0,
+    ReputationCategory.Uncategorized: 0.0
+}
+
+def reputation_score(user_id, project_id, _) -> VotingPower:
+    """
+    Oracle Module for the Reputation Score
+    """
+    bonus = 0.0
+    api_result = ReputationAPI.get(user_id)
+    if api_result.status == 200:
+        bonus = REPUTATION_SCORE_MAP[api_result.reputation_category]
+    return bonus
+```
 
 #### Prior Voting History
 
-> Section Status: Not done ⚠️
+> Section status: done ✅
+
+On this module, we presume that there's an API (or Smart Contract) that is able to provide information about an User UUID participation on past SCF rounds in terms of "has been active" or "has not been active". Based on this binary option and the corresponding round, an map is performed towards per-round bonus and then summed.
+
+```python=
+ROUND_BONUS_MAP = {
+    1: 0.0,
+    2: 0.1,
+    3: 0.2,
+    4: 0.3
+}
+
+def prior_voting_score(user_id, project_id, _) -> VotingPower:
+    """
+    Oracle Module for the Prior Voting Score
+    """
+
+    bonus = 0.0
+    api_result = PastVotingAPI.get_user_active_rounds(user_id)
+    if api_result.status == 200:
+        user_active_rounds = api_result.active_rounds
+        for active_round in user_active_rounds:
+            bonus += ROUND_BONUS_MAP[active_round]
+```
 
 #### Trust Graph Bonus
 
