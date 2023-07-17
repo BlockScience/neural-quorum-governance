@@ -39,9 +39,8 @@ h5:before {
 
 ## Intro
 
-:::danger
-Section status: not done
-:::
+> Section status: pending review 🛠️
+
 During the first phase of collaboration, the SDF and BlockScience teams collectively uncovered requirements and desirables for the design of a Proof of Concept voting mechanism for the Stellar Development Fund. 
 
 As an output of the second phase, this document describes the design of a voting mechanism PoC. This PoC was developed jointly by BlockScience and the SDF. 
@@ -56,9 +55,7 @@ This document consists of:
 
 ## Purpose
 
-:::warning
-Section status: pending review
-:::
+> Section status: pending review 🛠️
 
 Design a POC for a novel Voting Mechanism for the Stellar Community Fund (SCF) that would be implemented and deployed using Soroban, Stellar’s native smart contracts platform (currently in preview release).
 
@@ -66,9 +63,7 @@ Votes will be cast on proposals for distribution of SCF funds to projects to ben
 
 ## PoC Design Goals
 
-:::warning
-Section status: pending review
-:::
+> Section status: pending review 🛠️
 
 > [name=David Sisson] Words in bold need to be defined
 > These feed SDF user stories
@@ -104,18 +99,15 @@ Section status: check whether definitions in-line, footnote, after
 
 ## PoC Requirements in terms of User Stories
 
-:::warning
-Section status: pending review
-:::
+> Section status: pending review 🛠️
 
 To assess whether the PoC implementation conforms to surfaced requirements and desirables, we express them in relationship to User Stories. 
 In this section, we enumerate a semi-exhaustive set of stories, grouped across User Categories (Generic SCF User, Voter, Monitor and Administrator)
 
 ### Generic SCF User
 
-:::warning
-Section status: pending review
-:::
+> Section status: pending review 🛠️
+
 As a generic SCF User, I want 
 * the mechanisms used in the SCF to be simple enough for me to reason about them and flexible enough for them to be adapted to a changing environment or new use-cases.  
     * Neural Governance consists of several reasonably simple components, which show complexity only through composition. It allows allows to be parametrized to a changed environment and is designed with separate modules, which can be omitted, changed as well as new modules added to.
@@ -134,9 +126,7 @@ We never stated the below explicitly. Keep in or remove?
 
 ### Voter User
 
-:::warning
-Section status: pending review
-:::
+> Section status: pending review 🛠️
 
 * As an eligible voter in the Stellar Network community, I want to be able to and have the choice to vote in a round so that I can assign my voting power for or against each proposal in the round.
 
@@ -161,9 +151,7 @@ Decision: People will indicate before the round whatever they’ll Vote or Deleg
 
 ### Monitor User
 
-:::warning
-Section status: pending review
-:::
+> Section status: pending review 🛠️
 
 * As a voting round monitor, I want to be informed of the operational status of the Stellar Voting System so that I can alert an administrator of issues.
 * As a voting round monitor, I want to be able to check the progress of a voting round so that I can provide feedback to the community.
@@ -171,9 +159,7 @@ Section status: pending review
 
 ### Administrator
 
-:::warning
-Section status: pending review
-:::
+> Section status: pending review 🛠️
 
 * As a voting round administrator, I want to configure the Neural Governance component so that it fulfills the agreed upon rules for a voting round.
 * As a voting round administrator I want to be able to configure a voting round so that a RoundBallot can be generated.
@@ -183,9 +169,7 @@ Section status: pending review
 
 ## PoC Data Structures
 
-:::warning
-Section status: pending review
-:::
+> Section status: pending review 🛠️
 
 :::warning
 > [name=David Sisson]InProg: Convert to JSON Schema
@@ -336,9 +320,7 @@ Section status: not done; merge with NeuronResultMatrix --- output becomes input
 
 ### NeuronResultMatrix
 
-:::danger
-Section status: not done
-:::
+> Section status: not done 🚧
 
 \{VoterID, ProposalID, Vote, \{NeuronID, ResultArray\}\}
 
@@ -398,9 +380,7 @@ Section status: not done
 
 ## PoC Components
 
-:::warning
-Section status: pending review
-:::
+> Section status: pending review 🛠️
 
 The proposed implementation of the SDF Voting Mechanism consists of three main components:
 1. PollingPlace
@@ -414,9 +394,7 @@ Figure SystemDiagram: This figure shows the components that will be implemented 
 
 ### The PollingPlace Component
 
-:::warning
-Section status: pending review
-:::
+> Section status: pending review 🛠️
 
 The PollingPlace component implements the user interface with which a voter casts their votes for proposals in a given round of voting using a ballot. PollingPlace transmits a voter's ballot to the Governance component's input interface.
 
@@ -448,9 +426,7 @@ Can a voter apply different delegation policies to different delegated votes wit
 
 ### The PrecinctHQ Component
 
-:::warning
-Section status: pending review
-:::
+> Section status: pending review 🛠️
 
 The PrecinctHQ component implements a governor interface through which the governance component transmits the results of a voting round. PrecintHQ implements two user interfaces --- an administrative interface with which a voting round is configured and operated, and an interface from which to monitor the status of a voting round. 
 
@@ -489,17 +465,13 @@ Becuase of this combination of internal modulatity and fixed external interfaces
 
 #### Non-neural Subcomponents
 
-:::warning
-Section status: pending review
-:::
+> Section status: pending review 🛠️
 
 The non-neural components implement the interfaces that the VotingPlace and PrecintHQ must acquire in order to communicate with the Governance component.
 
 ##### Neural Governance Administration Subcomponent
 
-:::warning
-Section status: pending review
-:::
+> Section status: pending review 🛠️
 
 The Neural Governance Administration subcomponent provides an interface that is acquired by PrecinctHQ. Voting round administrators configure voting rounds through this interface.
 
@@ -511,10 +483,7 @@ The Neural Governance Administration subcomponent provides an interface that is 
 
 ##### Neural Governance Voting Subcomponent
 
-:::warning
-Section status: pending review
-
-:::
+> Section status: pending review 🛠️
 
 The Neural Governance Voting subcomponent provides the interface acquired by Polling Place. Neural Governance Voting acquires the Input interface provided by the QuorumVotingInputNeuron. Each voter's ballot is passed from the Polling Place to the Neural Governance Voting subcomponent via this interface as a RoundBallot. The Neural Governance Voting subcomponent collates RoundBallots from all voters in a round into a RoundVotingMatrix. 
 
@@ -527,9 +496,7 @@ The Neural Governance Voting subcomponent provides the interface acquired by Pol
 
 ##### Neural Governance Monitoring Subcomponent
 
-:::warning
-Section status: pending review
-:::
+> Section status: pending review 🛠️
 
 | Interface ID | Method Description | Method Signature | Method Return |
 | -------- | -------- | -------- | ------ |
@@ -537,9 +504,7 @@ Section status: pending review
 
 #### Neural Subcomponents
 
-:::warning
-Section status: pending review
-:::
+> Section status: pending review 🛠️
 
 Each neural subcomponent exposes the same interfaces shown in Fig. NeuralSubcomponent. Neurons are wired Output to Input as shown in Fig. SystemDiagram.
 

@@ -1,45 +1,39 @@
+# SCF Voting Mechanism PoC Specification
 
 <style>
-    
 body {
-	counter-reset: heading;
+    counter-reset: heading;
 }
-    
 h2:before {
-	content: counter(heading)". ";
-	counter-increment: heading;
-}
-    
+    content: counter(heading)". ";
+    counter-increment: heading;
+}  
 h2 {
-	counter-reset: subheading;
+    counter-reset: subheading;
 }
 h3:before {
-	content: counter(heading)"." counter(subheading)". ";
-	counter-increment: subheading;
+    content: counter(heading)"." counter(subheading)". ";
+    counter-increment: subheading;
 }
-    
 h3 {
-	counter-reset: subsubheading;
+    counter-reset: subsubheading;
 }
 h4:before {
-	content: counter(heading)"." counter(subheading)"." counter(subsubheading)". ";
-	counter-increment: subsubheading;
+    content: counter(heading)"." counter(subheading)"." counter(subsubheading)". ";
+    counter-increment: subsubheading;
 }
-    
 h4 {
-	counter-reset: subsubsubheading;
+    counter-reset: subsubsubheading;
 }
 h5:before {
-	content: counter(heading)"." counter(subheading)"." counter(subsubheading)"."counter(subsubsubheading)". ";
-	counter-increment: subsubsubheading;
+    content: counter(heading)"." counter(subheading)"." counter(subsubheading)"."counter(subsubsubheading)". ";
+    counter-increment: subsubsubheading;
 }
 </style>
 
 ## Intro
 
-:::success
-Section status: Done
-:::
+> Section Status: Done ✅
 
 This document provides an concise description along with pseudo-code examples for an script-like implementation written in Python. More detailed considerations around user stories, interfaces, general architecture for an in-production implementation can be found on the [SDF Voting Mechanism PoC Design](/HzRrf1NtQ_a7nlSvX_stXg) document. The decisions on this specification comes from an mixture of requirements-based design, conversations with the SDF Team and arbitrary ones taken by BlockScience for PoC purposes. An non-exhaustive list of them can be found at [SCF Voting Mechanisms - Decisions for the PoC](/BIh2LNprSoaSM-rRVjbAjA).
 
@@ -47,9 +41,7 @@ An notebook containing an example implementation for this document can be found 
 
 ## General Definitions
 
-:::success
-Section status: done
-:::
+> Section Status: Done ✅
 
 The admissible user actions for the SDF-Voting Mechansim in each round (mutually exclusive): 
 
@@ -61,6 +53,7 @@ The admissible user actions for the SDF-Voting Mechansim in each round (mutually
 Voting is going to take place based on Discrete Rounds, and tallying only occurs by the end of the round.
 
 The SDF-VM PoC can be described in terms of Inputs and Outputs as:
+
 - Input: 
     - Structural (once per round): **set of Users** and **set of Projects**
         - Assumption: the set of Users and set of Projects are validated before.
@@ -69,6 +62,7 @@ The SDF-VM PoC can be described in terms of Inputs and Outputs as:
     - Project Voting Power = Real Number
 
 The generic structures that make up the Voting Mechanism are:
+
 - User: a UUID
 - Project: a UUID
 - Project Votes: an map from project-UUID to an Real Number.
@@ -84,26 +78,21 @@ Lastly, the procedure on which User Actions is converted into Project Votes is a
 1. The Voting Power associated with each User Project Vote object is computed.
     - If Voting Power is agnostic to the project being voted, then this is equivalent to computing the Voting Power for each User.
     - Note that Quorum Votes arises from the Quorum Voting Module
-3. All User Project Votes are summed per project and assigned to the Project Votes map.
+2. All User Project Votes are summed per project and assigned to the Project Votes map.
 
 ### Vote tallying pseudocode example
 
-:::success
-Section status: Done
-:::
+> Section Status: Done ✅
 
+> :information_source: Note: this pseudo-code is decoupled from the Vote Neurons that were defined for the PoC. Different ones are used here for pedagogical purposes.
 
+> ⚠️ Warning: This code is not assured to be valid, and the output is likely to be incorrect. This is not an substitute for unit tests.
 
+Below we have an demo work-flow for the PoC Voting Mechanism. An key simplification being made is the usage of an single-layer layer for Neural Governance rather than multiple layers.
 
-:::info
-**Note**: this pseudo-code is decoupled from the Vote Neurons that were defined for the PoC. Different ones are used here for pedagogical purposes.
-:::
+Given an set of users, projects and user actions, the end output is to be an map from projects to votes. This is computed by aggregating (by taking the product) over the outputs originating from the Neural Governance Neurons, which in turn can be either simple functions (like the one user, one vote neuron), or complex functions implemented elsewhere (like the Quorum Delegation Neuron, or the Reputation Score Neuron).
 
-:::warning
-**Warning**: This code is not assured to be valid, and the output is likely to be incorrect. This is not an substitute for unit tests.
-:::
-
-```python=
+```python=3.9
 # 1) Types
 
 # Neuron Governance Types
@@ -147,18 +136,25 @@ upload_actions(USER_ACTIONS)
 # Multiplicative Aggregation over Voting Weights
 AGGREGATOR: lambda power_lst: reduce(lambda x, y: x * y)
 
+# Keys are labels for the Neurons
+# Values are 2-tuples on which the first element is the Oracle Function
+# and the second element is the Weighting Function
 VOTE_NEURONS = {
-    'one_vote_per_user': (lambda uid, pid: 1,
+    'one_vote_per_user': (lambda u, p: 1,
                           lambda x: x),
-    'quadratic_funding': (lambda uid, pid: query_user_contributions(uid),
+    'quadratic_funding': (lambda u, p: query_user_contributions(u),
                           lambda x: 1 + K_QF * x ** (1/2)),
-    'reputation_score': (lambda uid, pid: query_user_reputation(uid),
+    'reputation_score': (lambda u, p: query_user_reputation(u),
                          lambda x: 1 + K_REP * x),
+    'quorum_delegation': (lambda u, p: quorum_delegate_result(u, p), 
+                          lambda x: x)
 }
 
 # 5) Compute Final Output    
 
-## a) Compute Project Votes
+## a) Compute User Voting Power towards Projects
+
+# All projects start with 0 votes.
 project_vote_power = defaultdict(float)
 
 for (pid, project) in PROJECTS:
@@ -177,117 +173,123 @@ print(project_vote_power)
 
 ### Neural Governance Specification
 
-:::warning
-Section status: pending review
-:::
+> Section Status: Done ✅
 
-The role of the Neural Governance is to decide how much voting power should be allocated to a vote (either direct votes or quorum-delegated votes). Key primitives associated with NG are the Oracle Function (a raw input provider), a Weighting Function (which transforms the raw-input into a comparable measurement for voting power), and an Aggregator (which combines all the Vote Neuron outputs into a single number).
+*Neural Governance* is an label to an general architecture that attributes Voting Power by using paralellely and sequentially linked *Neurons*, whose input is derived from Oracle Functions, which is then weigheted and the subsequent output is aggregated across layers through custom rules (eg. take the product or sum between all Neurons an given layer)
 
-Some open questions include:
-- ~~Only "Yes" votes are weighted and all other decisions (No or Absent) are set to a pre-defined constants (eg. 0). Should we go with that or consider something else?~~
-- ~~Consideration 1: Yes vs NO/Abstain. Neglects "veto power" by higher voting power users/quorums~~
-    - Consideration 2: Yes = 1, Abstain = 0, No= -1 . Final outcome must be positive (xor cross certain threshold)
-- Should the Oracle Function output be a Raw Voting Power number or should it be arbitrary and leave for the Weighting to make it equivalent? The first one allows the Weights to be more intuitive (it simple scales the Oracle output). The second one allows for weighting non-numerical constructs directly (eg. Map categories A, B and C from the Oracle into 0.2, 0.4 and 0.6).
+Key primitives associated with Neural Governance are the Oracle Function (a raw input provider), a Weighting Function (which transforms the raw-input into a comparable measurement for voting power), and an Layer Aggregator (which combines all the Vote Neuron outputs into a single number). **A *Neuron*** is an pair consisting of an single *Oracle Function* and a single *Weighting Function*. **A *Layer*** is an list of *Neurons* plus a single *Layer Aggregator*.
 
-### Vote Neurons to be included on the PoC
+An *Oracle Function* must take 2 or 3 arguments as an input: Voter ID (`string`), Project ID (`string`) and Previous Layer Vote (`float`, optional). The output is the Raw Neuron Vote (`float`). 
 
-:::warning
-Section status: pending review
-:::
+The *Weighting Function* takes a single argument as an input - Raw Neuron Votes (`float`) and their output is a single number - the Neuron Vote (`float`).
 
-- Module 1: SDF Assigned Reputation: "Badges"
-- Module 2: ~~KYC~~ Prior Voting History
-- Module 3: Trust Graph Bonus, see [SCF Trust Bonus](https://hackmd.io/RQ-okLIHRduX0SL_NSbImQ)
+An *Layer Aggregator* function takes a ordered list of numbers (Neuron Votes, `list[float]`) and its output should be a single number - the Layer Vote (`float`).
+
+The Final Voting Power that is directed from an Voter ID towards an Project ID is determined by feedforwarding the sequential network made by the pre-defined *Layers*.
+
+On the following subsections, we provide an high-level example as for how to
+encode the Neurons and Layers for an 2-layer Sequential Network, and an
+example implementation for computing the Voting Power for an N-layer 
+Sequential Network.
+
+#### High-Level Example
+
+> Section Status: Done ✅
+
+```python=3.9
+
+# Keys are labels for the Neurons
+# Values are 2-tuples on which the first element is the Oracle Function
+# and the second element is the Weighting Function
+
+LAYER_1_AGGREGATOR = lambda lst: sum(lst)
+LAYER_2_AGGREGATOR = lambda lst: product(lst)
+
+LAYER_1_NEURONS = {
+    'trust_score': (lambda uid, _1, _2: trust_score(uid),
+                    lambda x: x),
+    'reputation_score': (lambda uid, _1, _2: user_reputation(uid),
+                         lambda x: 1 + K_REP * x)
+}
+
+LAYER_2_NEURONS = {
+    'power_before_delegation': (lambda _1, _2, prev_vote: prev_vote,
+                                lambda x: x),
+    'quorum_delegation': (lambda u, p: quorum_delegate_result(u, p), 
+                          lambda x: x) # Either 0.0 or 1.0
+}
+
+NEURAL_GOVERNANCE_LAYERS = [(LAYER_1_NEURONS, LAYER_1_AGGREGATOR),
+                            (LAYER_2_NEURONS, LAYER_2_AGGREGATOR)]
+
+# 5) Compute Final Output    
+
+## a) Compute User Voting Power towards Projects
+
+for (pid, project) in PROJECTS:
+    for (uid, user) in USERS:
+        args = (uid, pid, NEURAL_GOVERNANCE_LAYERS)
+        project_vote_power[pid] += user_project_vote_power(*args) 
+```
 
 
-#### Pseudocode Example
+#### Feedforward Computation Example
 
-:::warning
-Section status: pending review
-:::
+> Section Status: Done ✅
 
 ```python=
 # Types
 ProjectUUID = str
 UserUUID = str
-
-VoteDecision = bool
-UserProjectVote = tuple[ProjectUUID, VoteDecision]
 VotingPower = float
-
 VoteNeuron = tuple[OracleFunction, Weight]
-OracleFunction = callable[[UserUUID, ProjectUUID], object]
-Weight = callable[[object], VotingPower]
+OracleFunction = callable[[UserUUID, ProjectUUID, VotingPower], VotingPower]
+Weight = callable[[VotingPower], VotingPower]
 Aggregator = callable[[list[VotingPower]]], VotingPower]
-
-ABSENT_VOTING_POWER: VotingPower = 0.0
-NAY_VOTING_POWER_FACTOR: VotingPower = 0.0
 
 # Attribute Voting Power to an (user, project) tuple
 def user_project_vote_power(uid: UserUUID, 
-                            user_project_vote: UserProjectVote, 
-                            vote_neurons: set[VoteNeuron], 
-                            aggregator: Aggregator) -> VotingPower:
+                            pid: ProjectUUID, 
+                            neuron_layers: tuple[dict, callable],
+                            initial_votes: float=0.0) -> VotingPower:
     """
-    User Voting Power to be allocated for an given project.
+    Computes an User vote towards an Project as based on 
+    an Feedforward implementation of Neural Governance for an strictly
+    sequential network (no layer parallelism).
     """
-    if user_project_vote.decision in {Yes, No}
-        pid = user_project_vote.pid
-        
-        # Compute Oracle Raw Voting Power values for
-        user_project_vote_components = [weight(oracle(uid, pid))
-                                        for (oracle, weight) 
-                                        in vote_neurons]
-        
-        # Aggregate and return User-Project Voting Power
-        voting_power = aggregator(user_project_vote_components)   
-    elif user_project_vote.decision == Absent:
-        return ABSENT_VOTING_POWER
-    else:
-        raise VoteDecisionError
-        
-    if user_project_vote.decision == Yes:
-        return voting_power
-    elif user_project_vote.decision == No
-        return NAY_VOTING_POWER_FACTOR * voting_power
-
-
-# Example execution flow
-USER_UUID = 'danlessa'
-USER_PROJECT_VOTE = ('voting-mech-for-scf', VoteDecision.Yes)
-
-EXAMPLE_NEURONS = [
-    (lambda uid, pid: user_reputation_score(uid),
-     lambda x: x * 0.2),
-    
-    (lambda uid, pid: project_reputation_score(pid),
-     lambda x: x * 0.2),
-    
-    (lambda uid, pid: user_trust_score(uid),
-     lambda x: x * 0.3), 
-    
-    (lambda uid, pid: coi_score(uid, pid),
-     lambda x: x * 0.3)
-]
-
-EXAMPLE_AGGREGATOR = lambda power_components: sum(power_components)
-
-# Not used
-EXAMPLE_QF_AGGREGATOR = lambda power_components: sum(power_components) ** 0.5
-
-# Compute Voting Power from USER_UUID towards Project
-x = user_project_vote(USER_UUID, 
-                      USER_PROJECT_VOTE, 
-                      EXAMPLES_NEURONS, 
-                      EXAMPLE_AGGREGATOR)
+    current_vote = initial_votes
+    for layer in neuron_layers:
+        (neurons, layer_aggregator) = layer
+        neuron_votes = []
+        for neuron in neurons:
+            (oracle_function, weighting_function) = neuron
+            raw_neuron_vote = oracle_function(uid, pid, current_vote)
+            neuron_votes.append(weighting_function(raw_neuron_vote))
+        current_vote = layer_aggregator(neuron_votes)
+    return current_vote
+            
 ```
 
-### Quorum Voting Specification
+### Vote Neurons to be included on the PoC
 
-:::warning
-Section status: pending review
-@danlessa adapted the below for new choices made
-:::
+> Section Status: Pending Review 🛠️
+
+- Module 1: Quorum Delegation
+- Module 2: SDF Assigned Reputation: "Badges"
+- Module 3: Prior Voting History
+- Module 4: Trust Graph Bonus, see [SCF Trust Bonus](https://hackmd.io/RQ-okLIHRduX0SL_NSbImQ)
+
+#### SDF Assigned Reputation
+
+> Section Status: Not done ⚠️
+
+#### Trust Graph Bonus
+
+> Section Status: Not done ⚠️
+
+#### Quorum Delegation
+
+> Section Status: Pending Review 🛠️
 
 The role of Quorum Voting is to allow delegation of votes from individual users to groups of other users they trust. To reduce the risk of circularity and inactive Quorums, Users can indicate whether they expect to vote or to delegate and choose a total of 10 other (user-ranked) UUIDs for delegation. The top 5 UUIDs make up their specific Quorum. 
 A Quorum has a treshold for active participation of 66%. For the PoC, this means that 4 out of 5 Quorum members must render some vote, otherwise the delegating user will automatically abstain. 
@@ -318,8 +320,6 @@ Some open questions are:
 - Assignment of delegated Voting Power:
     - Option 1: User precommits his Quorum with commitment to vote with their agreement (yes, no, abstain)
     - Option 2: Delegated Power is assigned equally to each vote of the Quorum members in agreement (making it explicit that someone delegated to them)
-
-#### Pseudocode Example
 
 ```python=
 
@@ -360,7 +360,6 @@ def quorum_voting_power(uid_pid_power: VotingPower,
     else:
         return reject_power_factor * uid_pid_power        
 ```
-
 
 ## Resources
 
