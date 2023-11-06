@@ -7,7 +7,8 @@ UserUUID = str
 ProjectUUID = str
 VotingPower = float
 PastRoundIndex = int
-
+TrustGraph = dict[UserUUID, set[UserUUID]]
+DelegationGraph = dict[UserUUID, list[UserUUID]]
 class ReputationCategory(Enum):
     Tier3 = auto()
     Tier2 = auto()
@@ -46,8 +47,8 @@ class NQGModelState(TypedDict):
     delta_days: Days
     users: list[User]
     projects: set[ProjectUUID]
-    delegatees: dict[UserUUID, list[UserUUID]]
-    trustees: dict[UserUUID, set[UserUUID]]
+    delegatees: DelegationGraph
+    trustees: TrustGraph
     action_matrix: ActionMatrix
     active_vote_matrix: VotingMatrix
     vote_matrix: VotingMatrix
