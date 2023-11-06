@@ -80,7 +80,7 @@ def s_onboard_users(params: NQGModelParams, _2, _3, state: NQGModelState, _5) ->
     reputation_choices = list(ReputationCategory) # TODO: parametrize
 
     for i in range(new_users):
-        past_voting_n = max(poisson.rvs(params['avg_user_past_votes']), 
+        past_voting_n = min(poisson.rvs(params['avg_user_past_votes']), 
                             len(past_round_choices))
 
         new_user = User(label=str(len(new_user_list) + i),
@@ -106,9 +106,11 @@ def p_user_vote(params: NQGModelParams,
     
     previous_state_users = retrieve_prev_state_users(history)
 
+
     new_users = current_users - previous_state_users
 
     for user in new_users:
+        action_matrix[user] = {}
         if bernoulli.rvs(params['new_user_action_probability']):
             if bernoulli.rvs(params['new_user_round_vote_probability']):
                 decisions[user] = Action.RoundVote
@@ -164,6 +166,8 @@ def s_trust(params: NQGModelParams, _2, history, state: NQGModelState, _5) -> Va
 
 def s_oracle_state(params: NQGModelParams, _2, _3, state: NQGModelState, _5) -> VariableUpdate:
     raw_graph = state['trustees']
+
+    # Update Page rank values
     G = nx.from_dict_of_lists(raw_graph,
                               create_using=nx.DiGraph)
     pagerank_values = nx.pagerank(G, 
@@ -174,8 +178,15 @@ def s_oracle_state(params: NQGModelParams, _2, _3, state: NQGModelState, _5) -> 
                                   nstart=None,
                                   weight=None,
                                   dangling=None)
+    
+    # Update Reputation & Prior Voting user data
+
+    reputation_values = {u.label: u.reputation for u in state['users']}
+    prior_voting_values = {u.label: list(u.active_past_rounds) for u in state['users']}
 
     new_state = OracleState(pagerank_results=pagerank_values,
+                            reputation_bonus_values=reputation_values,
+                            prior_voting_bonus_values=prior_voting_values,
                             reputation_bonus_map=state['oracle_state'].reputation_bonus_map,
                             prior_voting_bonus_map=state['oracle_state'].prior_voting_bonus_map)
     return ('oracle_state', new_state)
@@ -188,35 +199,36 @@ def p_compute_votes(params: NQGModelParams, _2, _3, state: NQGModelState) -> Sig
     # Compute Abstainin users action matrix
     abstaining_users = set(u for u, d in state['user_round_decisions'].items()
                         if d == Action.Abstain)
-    for user in abstaining_users:
-        action_vote_matrix[user]
+    
+    for user_id in abstaining_users:
+        action_vote_matrix[user_id] = {}
         for project in params['projects']:
-            action_vote_matrix[user][project] = Vote.Abstain
+            action_vote_matrix[user_id][project] = Vote.Abstain
     
     # Compute Delegatees action matrix with Quorum Delegation
     delegating_users = set(u for u, d in state['user_round_decisions'].items()
                         if d == Action.Delegate)
-    for user in delegating_users:
-        action_vote_matrix[user] = {}
+    for user_id in delegating_users:
+        action_vote_matrix[user_id] = {}
         for project in params['projects']:
             vote = vote_from_quorum_delegation(state['delegatees'].get('user', []),
                                         project,
                                         state['action_matrix'],
                                         state['user_round_decisions'],
                                         params)
-            action_vote_matrix[user][project] = vote
+            action_vote_matrix[user_id][project] = vote
 
     # Compute vote matrix with Neural Governance
     vote_matrix: VotingMatrix = {}
-    for user, votes in action_vote_matrix.items():
-        vote_matrix[user] = {}
+    for user_id, votes in action_vote_matrix.items():
+        vote_matrix[user_id] = {}
         for project, vote in votes.items():
-            power = power_from_neural_governance(user, 
+            power = power_from_neural_governance(user_id, 
                                                  project, 
                                                  params['neuron_layers'],
                                                  state['oracle_state'], 
                                                  params['initial_power'])
-            vote_matrix[user][project] = vote * power
+            vote_matrix[user_id][project] = vote * power
 
     return {'vote_matrix': vote_matrix,
             'per_project_voting': per_project_voting}

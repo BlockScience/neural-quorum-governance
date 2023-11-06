@@ -15,7 +15,7 @@ import os
 def main(experiment_run: bool, pickle: bool) -> None:
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     if experiment_run is False:
-        df = easy_run(*default_run_args)
+        df = easy_run(*default_run_args, assign_params=False)
     else:
         df = standard_run()
     if pickle:

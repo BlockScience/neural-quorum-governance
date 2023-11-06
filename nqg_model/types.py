@@ -19,6 +19,8 @@ class ReputationCategory(Enum):
 @dataclass
 class OracleState():
     pagerank_results: dict[UserUUID, float]
+    reputation_bonus_values: dict[UserUUID, ReputationCategory]
+    prior_voting_bonus_values: dict[UserUUID, list[int]]
     reputation_bonus_map: dict[ReputationCategory, float]
     prior_voting_bonus_map: dict[int, float]
 
@@ -84,7 +86,7 @@ class NQGModelParams(TypedDict):
     quorum_delegation_relative_threshold: float
 
     # Neural Governance Parameters
-    neuron_layers: tuple[dict, Callable]
+    neuron_layers: list[NeuronLayer]
     initial_power: float
 
     # Neuron parameters

@@ -27,7 +27,9 @@ INITIAL_ORACLE_STATE = OracleState(
     2: 0.1,
     3: 0.2,
     4: 0.3
-}
+},
+reputation_bonus_values={},
+prior_voting_bonus_values={}
 )
 
 INITIAL_STATE = NQGModelState(

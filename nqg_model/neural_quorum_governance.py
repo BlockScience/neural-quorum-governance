@@ -42,7 +42,10 @@ def vote_from_quorum_delegation(user_quorum: list[UserUUID],
 
     # Compute Absolute and Relative agreement fractions
     absolute_agreement = agreement / params['max_quorum_selected_delegates']
-    relative_agreement = agreement / quorum_size
+    if quorum_size > 0:
+        relative_agreement = agreement / quorum_size
+    else:
+        relative_agreement = 0.0
 
     # Resolve vote as per quorum consensus
     if abs(absolute_agreement) >= params['quorum_delegation_absolute_threshold']:
@@ -90,28 +93,28 @@ def power_from_neural_governance(uid: UserUUID,
 # Prior Voting Bonus
 
 
-def prior_voting_score(user: User, oracle_state: OracleState) -> VotingPower:
+def prior_voting_score(user_id: UserUUID, oracle_state: OracleState) -> VotingPower:
     """
     Oracle Module for the Prior Voting Score
     """
     bonus = 1.0
-    for r in user.active_past_rounds:
-        bonus += OracleState.prior_voting_bonus_map.get(r, 0.0)
+    for r in oracle_state.prior_voting_bonus_values[user_id]:
+        bonus += oracle_state.prior_voting_bonus_map.get(r, 0.0)
     return bonus
 
 
 # Reputation Bonus
 
-def reputation_score(user) -> VotingPower:
+def reputation_score(user_id: UserUUID, oracle_state: OracleState) -> VotingPower:
     """
     Oracle Module for the Reputation Score
     """
-    return OracleState.reputation_bonus_map.get(user.reputation, 0.0)
+    return oracle_state.reputation_bonus_map.get(oracle_state.reputation_bonus_values[user_id], 0.0)
 
 # Trust Bonus
 
 
-def trust_score(user, oracle_state: OracleState) -> dict[UserUUID, float]:
+def trust_score(user: User, oracle_state: OracleState) -> VotingPower:
     """
     Computes the Trust Score as based on the Canonical Page Rank.
 
@@ -121,10 +124,13 @@ def trust_score(user, oracle_state: OracleState) -> dict[UserUUID, float]:
     The resulting scores will be contained between 0.0 and 1.0
     """
     pagerank_values = oracle_state.pagerank_results
-    max_value = max(pagerank_values.values())
-    min_value = min(pagerank_values.values())
-    trust_score = {user: (value - min_value) / (max_value - min_value)
-                   for (user, value) in pagerank_values.items()}
+    if (len(pagerank_values)) < 2 or (user.label not in pagerank_values.keys()):
+        trust_score = 0.0
+    else:
+        value = pagerank_values[user.label]
+        max_value = max(pagerank_values.values())
+        min_value = min(pagerank_values.values())
+        trust_score = (value - min_value) / (max_value - min_value)
     return trust_score
 
 
@@ -138,16 +144,16 @@ def LAYER_2_AGGREGATOR(lst): return reduce((lambda x, y: x * y), lst)
 
 
 LAYER_1_NEURONS = {
-    'trust_score': (lambda uid, _1, _2, state: trust_score(uid, state),
+    'trust_score': (lambda u, _1, _2, state: trust_score(u, state),
                     lambda x: x),
-    'reputation_score': (lambda uid, _1, _2, _4: reputation_score(uid),
+    'reputation_score': (lambda u, _1, _2, state: reputation_score(u, state),
                          lambda x: x)
 }
 
 LAYER_2_NEURONS = {
-    'past_round': (lambda _1, _2, prev_vote, _4: prev_vote,
+    'past_round': (lambda u, _2, _3, state: prior_voting_score(u, state),
                    lambda x: x),
 }
 
-DEFAULT_NG_LAYERS = [(LAYER_1_NEURONS, LAYER_1_AGGREGATOR),
-                     (LAYER_2_NEURONS, LAYER_2_AGGREGATOR)]
+DEFAULT_NG_LAYERS: list[NeuronLayer] = [(LAYER_1_NEURONS, LAYER_1_AGGREGATOR),
+                                        (LAYER_2_NEURONS, LAYER_2_AGGREGATOR)]
