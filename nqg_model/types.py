@@ -59,7 +59,6 @@ class NQGModelParams(TypedDict):
     label: str
     timestep_in_days: Days
 
-
     # Quorum Delegation Parameters
     quorum_agreement_weight_yes: float
     quorum_agreement_weight_no: float
@@ -86,9 +85,9 @@ class NQGModelParams(TypedDict):
     new_user_round_vote_probability: float
     new_user_project_vote_probability: float
     new_user_project_vote_yes_probability: float
-    new_user_average_delegate_count: int
+    new_user_average_delegate_count: float
     new_user_min_delegate_count: int
-    new_user_average_trustees: int
+    new_user_average_trustees: float
 
 
 
