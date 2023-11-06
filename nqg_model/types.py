@@ -9,11 +9,19 @@ VotingPower = float
 PastRoundIndex = int
 TrustGraph = dict[UserUUID, set[UserUUID]]
 DelegationGraph = dict[UserUUID, list[UserUUID]]
+
 class ReputationCategory(Enum):
     Tier3 = auto()
     Tier2 = auto()
     Tier1 = auto()
     Uncategorized = auto()
+
+@dataclass
+class OracleState():
+    pagerank_results: dict[UserUUID, float]
+    reputation_bonus_map: dict[ReputationCategory, float]
+    prior_voting_bonus_map: dict[int, float]
+
 class Vote(float, Enum):
     """
     The Voting Actions towards a Project that a User can take and the 
@@ -38,17 +46,16 @@ class User():
     active_past_rounds: set[PastRoundIndex]
 
 
-@dataclass
-class OracleState():
-    pagerank_results: dict[UserUUID, float]
-    reputation_bonus_map: dict[ReputationCategory, float]
-    prior_voting_bonus_map: dict[int, float]
-
-
 ActionMatrix = dict[UserUUID, dict[ProjectUUID, Vote]]
 VotingMatrix = dict[UserUUID, dict[ProjectUUID, VotingPower]]
 PerProjectVoting = dict[ProjectUUID, VotingPower]
 
+OracleFunction = Callable[[UserUUID, ProjectUUID, VotingPower, OracleState], VotingPower]
+WeightingFunction = Callable[[VotingPower], VotingPower]
+LayerAggregatorFunction = Callable[[list[VotingPower]], VotingPower]
+Neuron = tuple[OracleFunction, WeightingFunction]
+NeuronsContainer = dict[Annotated[str, 'Neuron label'], Neuron]
+NeuronLayer = tuple[NeuronsContainer, LayerAggregatorFunction]
 class NQGModelState(TypedDict):
     days_passed: Days
     delta_days: Days

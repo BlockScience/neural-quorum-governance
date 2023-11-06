@@ -56,7 +56,7 @@ def vote_from_quorum_delegation(user_quorum: list[UserUUID],
 
 def power_from_neural_governance(uid: UserUUID, 
                             pid: ProjectUUID, 
-                            neuron_layers: tuple[dict, Callable],
+                            neuron_layers: list[NeuronLayer],
                             oracle_state: OracleState,
                             initial_votes: float=0.0,
                             print_on_each_layer=False) -> VotingPower:
@@ -85,13 +85,13 @@ def power_from_neural_governance(uid: UserUUID,
 ## Part 2. Specific definitions
 ### Prior Voting Bonus
 
-def prior_voting_score(user: User) -> VotingPower:
+def prior_voting_score(user: User, oracle_state: OracleState) -> VotingPower:
     """
     Oracle Module for the Prior Voting Score
     """
     bonus = 0.0
     for r in user.active_past_rounds:
-        bonus += ROUND_BONUS_MAP.get(r, 0.0)
+        bonus += OracleState.prior_voting_bonus_map.get(r, 0.0)
     return bonus
 
 
@@ -101,7 +101,7 @@ def reputation_score(user) -> VotingPower:
     """
     Oracle Module for the Reputation Score
     """
-    return REPUTATION_SCORE_MAP.get(user.reputation, 0.0)
+    return OracleState.reputation_bonus_map.get(user.reputation, 0.0)
 
 ### Trust Bonus
 def trust_score(user, oracle_state: OracleState) -> dict[UserUUID, float]:
