@@ -30,7 +30,8 @@ NQG_MODEL_BLOCKS: list[dict] = [
         'variables': {
             'trustees': s_trust,
             'delegates': replace_suf,
-            'action_matrix': replace_suf
+            'action_matrix': replace_suf,
+            'user_round_decisions': replace_suf
         }
     },
     {

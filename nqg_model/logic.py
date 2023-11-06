@@ -2,8 +2,8 @@ from cadCAD_tools.types import Signal, VariableUpdate
 from nqg_model.types import *
 from typing import Callable
 from copy import copy, deepcopy
-from scipy.stats import poisson, norm
-from random import choice, sample
+from scipy.stats import poisson, norm, bernoulli
+from random import choice, sample, random
 
 def generic_policy(_1, _2, _3, _4) -> dict:
     """Function to generate pass through policy
@@ -82,13 +82,68 @@ def s_onboard_users(params: NQGModelParams, _2, _3, state: NQGModelState, _5) ->
 
     return ('users', new_user_list)
 
-def p_user_vote(params: NQGModelParams, _2, _3, state: NQGModelState) -> Signal:
+def p_user_vote(params: NQGModelParams,
+                 _2,
+                 history: dict[int, dict[int, NQGModelState]], 
+                 state: NQGModelState) -> Signal:
+    
+    delegates: DelegationGraph = deepcopy(state['delegatees'])
+    action_matrix: ActionMatrix = deepcopy(state['action_matrix'])
+    decisions: dict[UserUUID, Action] = deepcopy(state['user_round_decisions'])
+    trustees: TrustGraph = deepcopy(state['trustees'])
 
-    delegates: DelegationGraph = {}
-    action_matrix: ActionMatrix = {}
+    current_users = set(u.label 
+                     for u 
+                     in state['users'])
+    
+    previous_state_users = set(u.label 
+                            for u 
+                            in history[-2][-1]['users'])
+
+    new_users = current_users - previous_state_users
+
+
+    for user in new_users:
+
+        # Part 1. Decide User Action
+
+        if bernoulli.rvs(params['new_user_action_probability']):
+            if bernoulli.rvs(params['new_user_round_vote_probability']):
+                decisions[user] = Action.RoundVote
+                # Active vote
+                for project in params['projects']:
+                    if bernoulli.rvs('new_user_project_vote_probability'):
+                        if bernoulli.rvs('new_user_project_vote_yes_probability'):
+                            project_vote = Vote.Yes
+                        else:
+                            project_vote = Vote.No
+                    else:
+                        project_vote = Vote.Abstain
+                    action_matrix[user][project] = project_vote
+            else:
+                decisions[user] = Action.Delegate
+                mu = params['new_user_average_delegate_count'] - params['new_user_min_delegate_count']
+                delegate_count = poisson.rvs(mu, loc=params['new_user_min_delegate_count'])
+                
+                if delegate_count > len(previous_state_users):
+                    delegate_count = len(previous_state_users)
+
+                user_delegates = sample(previous_state_users, delegate_count)
+                delegates[user] = user_delegates
+        else:
+            decisions[user] = Action.Abstain
+
+        # Part 2. Decide User Trust Graph
+
+        n_user_trustees = poisson.rvs(params['new_user_average_trustees'])
+        n_user_trustees = min(n_user_trustees, len(previous_state_users))
+        user_trustees = set(sample(previous_state_users, n_user_trustees))
+        trustees[user] = user_trustees
 
     return {'delegates': delegates,
-            'action_matrix': action_matrix}
+            'action_matrix': action_matrix, 
+            'user_round_decisions': decisions,
+            'trustees': trustees}
 
 def s_trust(params: NQGModelParams, _2, _3, state: NQGModelState, _5) -> VariableUpdate:
     new_trustees: TrustGraph = {}

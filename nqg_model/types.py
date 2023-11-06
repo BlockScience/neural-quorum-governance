@@ -38,7 +38,7 @@ class User():
     active_past_rounds: set[PastRoundIndex]
 
 
-ActionMatrix = dict[UserUUID, dict[ProjectUUID, Action]]
+ActionMatrix = dict[UserUUID, dict[ProjectUUID, Vote]]
 VotingMatrix = dict[UserUUID, dict[ProjectUUID, VotingPower]]
 PerProjectVoting = dict[ProjectUUID, VotingPower]
 
@@ -46,7 +46,8 @@ class NQGModelState(TypedDict):
     days_passed: Days
     delta_days: Days
     users: list[User]
-    projects: set[ProjectUUID]
+    
+    user_round_decisions: dict[UserUUID, Action]
     delegatees: DelegationGraph
     trustees: TrustGraph
     action_matrix: ActionMatrix
@@ -59,6 +60,18 @@ class NQGModelParams(TypedDict):
     label: str
     timestep_in_days: Days
 
+    projects: set[ProjectUUID]
+
     avg_new_users_per_day: float
     avg_user_past_votes: float
+
+    new_user_action_probability: float
+
+    new_user_round_vote_probability: float
+    new_user_project_vote_probability: float
+    new_user_project_vote_yes_probability: float
+    new_user_average_delegate_count: int
+    new_user_min_delegate_count: int
+    new_user_average_trustees: int
+
     past_rounds: set[PastRoundIndex]
