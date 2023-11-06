@@ -114,7 +114,7 @@ def reputation_score(user_id: UserUUID, oracle_state: OracleState) -> VotingPowe
 # Trust Bonus
 
 
-def trust_score(user: User, oracle_state: OracleState) -> VotingPower:
+def trust_score(user_id: UserUUID, oracle_state: OracleState) -> VotingPower:
     """
     Computes the Trust Score as based on the Canonical Page Rank.
 
@@ -124,13 +124,17 @@ def trust_score(user: User, oracle_state: OracleState) -> VotingPower:
     The resulting scores will be contained between 0.0 and 1.0
     """
     pagerank_values = oracle_state.pagerank_results
-    if (len(pagerank_values)) < 2 or (user.label not in pagerank_values.keys()):
+    if (len(pagerank_values)) < 2 or (user_id not in pagerank_values.keys()):
         trust_score = 0.0
     else:
-        value = pagerank_values[user.label]
+        value = pagerank_values[user_id]
         max_value = max(pagerank_values.values())
         min_value = min(pagerank_values.values())
-        trust_score = (value - min_value) / (max_value - min_value)
+        if max_value == min_value:
+            # XXX: assumption for edge cases
+            trust_score = 0.5
+        else:
+            trust_score = (value - min_value) / (max_value - min_value)
     return trust_score
 
 

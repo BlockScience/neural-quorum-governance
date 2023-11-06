@@ -161,8 +161,7 @@ def s_trust(params: NQGModelParams, _2, history, state: NQGModelState, _5) -> Va
         user_trustees = set(sample(previous_state_users, n_user_trustees))
         trustees[user] = user_trustees
 
-    new_trustees: TrustGraph = {}
-    return ('trustees', new_trustees)
+    return ('trustees', trustees)
 
 def s_oracle_state(params: NQGModelParams, _2, _3, state: NQGModelState, _5) -> VariableUpdate:
     raw_graph = state['trustees']
