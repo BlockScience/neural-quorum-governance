@@ -1,7 +1,10 @@
 from nqg_model.logic import *
 
 
-NQG_MODEL_BLOCKS = [
+
+
+
+NQG_MODEL_BLOCKS: list[dict] = [
     {
         'label': 'Time Tracking',
         'ignore': False,
@@ -13,6 +16,26 @@ NQG_MODEL_BLOCKS = [
             'days_passed': s_days_passed,
             'delta_days': s_delta_days
         }
+    }, 
+    {
+        'label': 'Onboard users',
+        'policies': {},
+        'variables': {}
+    },
+    {
+        'label': 'Update Trust Network',
+        'policies': {},
+        'variables': {}
+    },
+    {
+        'label': 'Decide to vote or delegate',
+        'policies': {},
+        'variables': {}
+    },
+    {
+        'label': 'Tally partial votes',
+        'policies': {},
+        'variables': {}
     }
 ]
 
