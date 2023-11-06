@@ -83,7 +83,7 @@ def s_onboard_users(params: NQGModelParams, _2, _3, state: NQGModelState, _5) ->
         past_voting_n = min(poisson.rvs(params['avg_user_past_votes']), 
                             len(past_round_choices))
 
-        new_user = User(label=str(len(new_user_list) + i),
+        new_user = User(label=len(new_user_list) + i,
                         reputation=choice(reputation_choices),
                         active_past_rounds=set(sample(past_round_choices, past_voting_n)))
         
@@ -228,6 +228,10 @@ def p_compute_votes(params: NQGModelParams, _2, _3, state: NQGModelState) -> Sig
                                                  state['oracle_state'], 
                                                  params['initial_power'])
             vote_matrix[user_id][project] = vote * power
+            if project in per_project_voting:
+                per_project_voting[project] += vote_matrix[user_id][project]
+            else:
+                per_project_voting[project] = vote_matrix[user_id][project]
 
     return {'vote_matrix': vote_matrix,
             'per_project_voting': per_project_voting}
