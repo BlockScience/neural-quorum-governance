@@ -1,5 +1,9 @@
 from nqg_model.types import *
+from nqg_model.neural_quorum_governance import DEFAULT_NG_LAYERS
 from numpy import nan
+
+TIMESTEPS = 100
+SAMPLES = 1
 
 N_INITIAL_USERS = 6
 N_PROJECTS = 15
@@ -49,7 +53,7 @@ SINGLE_RUN_PARAMS = NQGModelParams(
     max_quorum_candidate_delegates=10,
     quorum_delegation_absolute_threshold=1/2,
     quorum_delegation_relative_threshold=2/3,
-    neuron_layers=DEFAULT_NEURON_LAYERS,
+    neuron_layers=DEFAULT_NG_LAYERS,
     initial_power=0.0,
     past_rounds=PAST_ROUNDS,
     projects=DEFAULT_PROJECTS,

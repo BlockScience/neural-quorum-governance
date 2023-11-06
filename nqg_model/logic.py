@@ -5,6 +5,7 @@ from copy import deepcopy
 from scipy.stats import poisson, bernoulli  # type: ignore
 from random import choice, sample
 from nqg_model.neural_quorum_governance import *
+from nqg_model.helper import *
 import networkx as nx # type: ignore
 
 def generic_policy(_1, _2, _3, _4) -> dict:
@@ -103,9 +104,7 @@ def p_user_vote(params: NQGModelParams,
                      for u 
                      in state['users'])
     
-    previous_state_users = set(u.label 
-                            for u 
-                            in history[-2][-1]['users'])
+    previous_state_users = retrieve_prev_state_users(history)
 
     new_users = current_users - previous_state_users
 
@@ -115,8 +114,8 @@ def p_user_vote(params: NQGModelParams,
                 decisions[user] = Action.RoundVote
                 # Active vote
                 for project in params['projects']:
-                    if bernoulli.rvs('new_user_project_vote_probability'):
-                        if bernoulli.rvs('new_user_project_vote_yes_probability'):
+                    if bernoulli.rvs(params['new_user_project_vote_probability']):
+                        if bernoulli.rvs(params['new_user_project_vote_yes_probability']):
                             project_vote = Vote.Yes
                         else:
                             project_vote = Vote.No
@@ -139,9 +138,11 @@ def p_user_vote(params: NQGModelParams,
 
 
 
-    return {'delegates': delegates,
+    return {'delegatees': delegates,
             'action_matrix': action_matrix, 
             'user_round_decisions': decisions}
+
+
 
 def s_trust(params: NQGModelParams, _2, history, state: NQGModelState, _5) -> VariableUpdate:
     trustees: TrustGraph = deepcopy(state['trustees'])
@@ -149,9 +150,7 @@ def s_trust(params: NQGModelParams, _2, history, state: NQGModelState, _5) -> Va
                      for u 
                      in state['users'])
     
-    previous_state_users = set(u.label 
-                            for u 
-                            in history[-2][-1]['users'])
+    previous_state_users = retrieve_prev_state_users(history)
 
     new_users = current_users - previous_state_users
     for user in new_users:
