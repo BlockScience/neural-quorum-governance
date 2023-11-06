@@ -1,10 +1,11 @@
-from cadCAD_tools.types import Signal, VariableUpdate
+from cadCAD_tools.types import Signal, VariableUpdate  # type: ignore
 from nqg_model.types import *
 from typing import Callable
-from copy import copy, deepcopy
-from scipy.stats import poisson, norm, bernoulli
-from random import choice, sample, random
+from copy import deepcopy
+from scipy.stats import poisson, bernoulli  # type: ignore
+from random import choice, sample
 from nqg_model.neural_quorum_governance import *
+import networkx as nx # type: ignore
 
 def generic_policy(_1, _2, _3, _4) -> dict:
     """Function to generate pass through policy
@@ -62,6 +63,12 @@ def s_onboard_users(params: NQGModelParams, _2, _3, state: NQGModelState, _5) ->
     """
     Onboard N new users and their relevant properties for NQG
     through stochastic processes.
+
+    XXX: the new user reputation is chosen from the `ReputationCategory` enum
+    with every option having equal weight.
+    XXX: the active past rounds for the new user is randomly sampled
+    from the list of past rounds with equal weights. The amount of samples
+    is based on a capped poisson sample.
     """
     new_user_list = deepcopy(state['users'])
 
@@ -156,6 +163,25 @@ def s_trust(params: NQGModelParams, _2, history, state: NQGModelState, _5) -> Va
     new_trustees: TrustGraph = {}
     return ('trustees', new_trustees)
 
+def s_oracle_state(params: NQGModelParams, _2, _3, state: NQGModelState, _5) -> VariableUpdate:
+    raw_graph = state['trustees']
+    G = nx.from_dict_of_lists(raw_graph,
+                              create_using=nx.DiGraph)
+    pagerank_values = nx.pagerank(G, 
+                                  alpha=0.85, 
+                                  personalization=None, 
+                                  max_iter=100,
+                                  tol=1e-6,
+                                  nstart=None,
+                                  weight=None,
+                                  dangling=None)
+
+    new_state = OracleState(pagerank_results=pagerank_values,
+                            reputation_bonus_map=state['oracle_state'].reputation_bonus_map,
+                            prior_voting_bonus_map=state['oracle_state'].prior_voting_bonus_map)
+    return ('oracle_state', new_state)
+
+
 def p_compute_votes(params: NQGModelParams, _2, _3, state: NQGModelState) -> Signal:
     action_vote_matrix: ActionMatrix = deepcopy(state['action_matrix'])
     per_project_voting: PerProjectVoting = deepcopy(state['per_project_voting'])
@@ -186,7 +212,11 @@ def p_compute_votes(params: NQGModelParams, _2, _3, state: NQGModelState) -> Sig
     for user, votes in action_vote_matrix.items():
         vote_matrix[user] = {}
         for project, vote in votes.items():
-            power = power_from_neural_governance(user, project, params['neuron_layers'], params['initial_power'])
+            power = power_from_neural_governance(user, 
+                                                 project, 
+                                                 params['neuron_layers'],
+                                                 state['oracle_state'], 
+                                                 params['initial_power'])
             vote_matrix[user][project] = vote * power
 
     return {'vote_matrix': vote_matrix,

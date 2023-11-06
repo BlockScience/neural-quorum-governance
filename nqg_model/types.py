@@ -38,6 +38,13 @@ class User():
     active_past_rounds: set[PastRoundIndex]
 
 
+@dataclass
+class OracleState():
+    pagerank_results: dict[UserUUID, float]
+    reputation_bonus_map: dict[ReputationCategory, float]
+    prior_voting_bonus_map: dict[int, float]
+
+
 ActionMatrix = dict[UserUUID, dict[ProjectUUID, Vote]]
 VotingMatrix = dict[UserUUID, dict[ProjectUUID, VotingPower]]
 PerProjectVoting = dict[ProjectUUID, VotingPower]
@@ -53,6 +60,7 @@ class NQGModelState(TypedDict):
     action_matrix: ActionMatrix
     vote_matrix: VotingMatrix
     per_project_voting: PerProjectVoting
+    oracle_state: OracleState
 
 
 class NQGModelParams(TypedDict):

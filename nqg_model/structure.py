@@ -35,6 +35,13 @@ NQG_MODEL_BLOCKS: list[dict] = [
         }
     },
     {
+        'label': 'Update Oracle State',
+        'policies': {},
+        'variables': {
+            'oracle_state': s_oracle_state
+        }
+    },
+    {
         'label': 'Tally votes',
         'policies': {
             'tally votes': p_compute_votes

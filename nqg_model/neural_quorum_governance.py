@@ -1,5 +1,7 @@
 from nqg_model.types import *
-from math import abs
+from functools import reduce
+
+## Part 1. General definitions
 
 def vote_from_quorum_delegation(user_quorum: list[UserUUID],
                      project_id: ProjectUUID,
@@ -54,7 +56,8 @@ def vote_from_quorum_delegation(user_quorum: list[UserUUID],
 
 def power_from_neural_governance(uid: UserUUID, 
                             pid: ProjectUUID, 
-                            neuron_layers: tuple[dict, callable],
+                            neuron_layers: tuple[dict, Callable],
+                            oracle_state: OracleState,
                             initial_votes: float=0.0,
                             print_on_each_layer=False) -> VotingPower:
     """
@@ -70,7 +73,7 @@ def power_from_neural_governance(uid: UserUUID,
         neuron_votes = []
         for (neuron_label, neuron) in neurons.items():
             (oracle_function, weighting_function) = neuron
-            raw_neuron_vote = oracle_function(uid, pid, current_vote)
+            raw_neuron_vote = oracle_function(uid, pid, current_vote, oracle_state)
             neuron_votes.append(weighting_function(raw_neuron_vote))
         current_vote = layer_aggregator(neuron_votes)
 
@@ -79,3 +82,61 @@ def power_from_neural_governance(uid: UserUUID,
 
     return current_vote
 
+## Part 2. Specific definitions
+### Prior Voting Bonus
+
+def prior_voting_score(user: User) -> VotingPower:
+    """
+    Oracle Module for the Prior Voting Score
+    """
+    bonus = 0.0
+    for r in user.active_past_rounds:
+        bonus += ROUND_BONUS_MAP.get(r, 0.0)
+    return bonus
+
+
+### Reputation Bonus
+
+def reputation_score(user) -> VotingPower:
+    """
+    Oracle Module for the Reputation Score
+    """
+    return REPUTATION_SCORE_MAP.get(user.reputation, 0.0)
+
+### Trust Bonus
+def trust_score(user, oracle_state: OracleState) -> dict[UserUUID, float]:
+    """
+    Computes the Trust Score as based on the Canonical Page Rank.
+
+    This is done by computing the Page Rank on the whole Trust Graph
+    with default arguments and scaling the results through MinMax.
+    
+    The resulting scores will be contained between 0.0 and 1.0
+    """
+    pagerank_values = oracle_state.pagerank_results
+    max_value = max(pagerank_values.values())
+    min_value = min(pagerank_values.values())
+    trust_score = {user: (value - min_value) / (max_value - min_value)
+                   for (user, value) in pagerank_values.items()}
+    return trust_score
+
+
+### Layering it together
+LAYER_1_AGGREGATOR = lambda lst: sum(lst)
+# Take the product of the list
+LAYER_2_AGGREGATOR = lambda lst: reduce((lambda x, y: x * y), lst) 
+
+LAYER_1_NEURONS = {
+    'trust_score': (lambda uid, _1, _2, state: trust_score(uid, state),
+                    lambda x: x),
+    'reputation_score': (lambda uid, _1, _2, _4: reputation_score(uid),
+                         lambda x: x)
+}
+
+LAYER_2_NEURONS = {
+    'past_round': (lambda _1, _2, prev_vote, _4: prev_vote,
+                                lambda x: x),
+}
+
+NEURAL_GOVERNANCE_LAYERS = [(LAYER_1_NEURONS, LAYER_1_AGGREGATOR),
+                            (LAYER_2_NEURONS, LAYER_2_AGGREGATOR)]
