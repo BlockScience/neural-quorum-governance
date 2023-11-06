@@ -40,7 +40,6 @@ NQG_MODEL_BLOCKS: list[dict] = [
             'tally votes': p_compute_votes
         },
         'variables': {
-            'active_vote_matrix': replace_suf,
             'vote_matrix': replace_suf,
             'per_project_voting': replace_suf
         }

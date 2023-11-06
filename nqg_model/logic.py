@@ -4,6 +4,7 @@ from typing import Callable
 from copy import copy, deepcopy
 from scipy.stats import poisson, norm, bernoulli
 from random import choice, sample, random
+from nqg_model.neural_quorum_governance import *
 
 def generic_policy(_1, _2, _3, _4) -> dict:
     """Function to generate pass through policy
@@ -90,7 +91,6 @@ def p_user_vote(params: NQGModelParams,
     delegates: DelegationGraph = deepcopy(state['delegatees'])
     action_matrix: ActionMatrix = deepcopy(state['action_matrix'])
     decisions: dict[UserUUID, Action] = deepcopy(state['user_round_decisions'])
-    trustees: TrustGraph = deepcopy(state['trustees'])
 
     current_users = set(u.label 
                      for u 
@@ -102,11 +102,7 @@ def p_user_vote(params: NQGModelParams,
 
     new_users = current_users - previous_state_users
 
-
     for user in new_users:
-
-        # Part 1. Decide User Action
-
         if bernoulli.rvs(params['new_user_action_probability']):
             if bernoulli.rvs(params['new_user_round_vote_probability']):
                 decisions[user] = Action.RoundVote
@@ -133,28 +129,65 @@ def p_user_vote(params: NQGModelParams,
         else:
             decisions[user] = Action.Abstain
 
-        # Part 2. Decide User Trust Graph
 
+
+
+    return {'delegates': delegates,
+            'action_matrix': action_matrix, 
+            'user_round_decisions': decisions}
+
+def s_trust(params: NQGModelParams, _2, history, state: NQGModelState, _5) -> VariableUpdate:
+    trustees: TrustGraph = deepcopy(state['trustees'])
+    current_users = set(u.label 
+                     for u 
+                     in state['users'])
+    
+    previous_state_users = set(u.label 
+                            for u 
+                            in history[-2][-1]['users'])
+
+    new_users = current_users - previous_state_users
+    for user in new_users:
         n_user_trustees = poisson.rvs(params['new_user_average_trustees'])
         n_user_trustees = min(n_user_trustees, len(previous_state_users))
         user_trustees = set(sample(previous_state_users, n_user_trustees))
         trustees[user] = user_trustees
 
-    return {'delegates': delegates,
-            'action_matrix': action_matrix, 
-            'user_round_decisions': decisions,
-            'trustees': trustees}
-
-def s_trust(params: NQGModelParams, _2, _3, state: NQGModelState, _5) -> VariableUpdate:
     new_trustees: TrustGraph = {}
     return ('trustees', new_trustees)
 
 def p_compute_votes(params: NQGModelParams, _2, _3, state: NQGModelState) -> Signal:
+    action_vote_matrix: ActionMatrix = deepcopy(state['action_matrix'])
+    per_project_voting: PerProjectVoting = deepcopy(state['per_project_voting'])
 
-    action_vote_matrix: VotingMatrix = {}
+    # Compute Abstainin users action matrix
+    abstaining_users = set(u for u, d in state['user_round_decisions'].items()
+                        if d == Action.Abstain)
+    for user in abstaining_users:
+        action_vote_matrix[user]
+        for project in params['projects']:
+            action_vote_matrix[user][project] = Vote.Abstain
+    
+    # Compute Delegatees action matrix with Quorum Delegation
+    delegating_users = set(u for u, d in state['user_round_decisions'].items()
+                        if d == Action.Delegate)
+    for user in delegating_users:
+        action_vote_matrix[user] = {}
+        for project in params['projects']:
+            vote = vote_from_quorum_delegation(state['delegatees'].get('user', []),
+                                        project,
+                                        state['action_matrix'],
+                                        state['user_round_decisions'],
+                                        params)
+            action_vote_matrix[user][project] = vote
+
+    # Compute vote matrix with Neural Governance
     vote_matrix: VotingMatrix = {}
-    per_project_voting: PerProjectVoting = {}
+    for user, votes in action_vote_matrix.items():
+        vote_matrix[user] = {}
+        for project, vote in votes.items():
+            power = power_from_neural_governance(user, project, params['neuron_layers'], params['initial_power'])
+            vote_matrix[user][project] = vote * power
 
-    return {'active_vote_matrix': action_vote_matrix,
-            'vote_matrix': vote_matrix,
+    return {'vote_matrix': vote_matrix,
             'per_project_voting': per_project_voting}

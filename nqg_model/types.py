@@ -1,4 +1,4 @@
-from typing import Annotated, TypedDict, Union
+from typing import Annotated, TypedDict, Union, Callable
 from dataclasses import dataclass
 from enum import Enum, auto
 
@@ -51,7 +51,6 @@ class NQGModelState(TypedDict):
     delegatees: DelegationGraph
     trustees: TrustGraph
     action_matrix: ActionMatrix
-    active_vote_matrix: VotingMatrix
     vote_matrix: VotingMatrix
     per_project_voting: PerProjectVoting
 
@@ -60,13 +59,30 @@ class NQGModelParams(TypedDict):
     label: str
     timestep_in_days: Days
 
+
+    # Quorum Delegation Parameters
+    quorum_agreement_weight_yes: float
+    quorum_agreement_weight_no: float
+    quorum_agreement_weight_abstain: float
+    max_quorum_selected_delegates: int
+    max_quorum_candidate_delegates: int
+    quorum_delegation_absolute_threshold: float
+    quorum_delegation_relative_threshold: float
+
+    # Neural Governance Parameters
+    neuron_layers: tuple[dict, Callable]
+    initial_power: float
+
+    # Neuron parameters
+    past_rounds: set[PastRoundIndex]
+
+    # Exogenous parameters
     projects: set[ProjectUUID]
 
+    # Behavioral Parameters
     avg_new_users_per_day: float
     avg_user_past_votes: float
-
     new_user_action_probability: float
-
     new_user_round_vote_probability: float
     new_user_project_vote_probability: float
     new_user_project_vote_yes_probability: float
@@ -74,4 +90,6 @@ class NQGModelParams(TypedDict):
     new_user_min_delegate_count: int
     new_user_average_trustees: int
 
-    past_rounds: set[PastRoundIndex]
+
+
+    
