@@ -40,6 +40,7 @@ class User():
 ActionMatrix = dict[UserUUID, dict[ProjectUUID, Action]]
 VotingMatrix = dict[UserUUID, dict[ProjectUUID, VotingPower]]
 PerProjectVoting = dict[ProjectUUID, VotingPower]
+
 class NQGModelState(TypedDict):
     days_passed: Days
     delta_days: Days
@@ -56,3 +57,7 @@ class NQGModelState(TypedDict):
 class NQGModelParams(TypedDict):
     label: str
     timestep_in_days: Days
+
+    avg_new_users_per_day: float
+    avg_user_past_votes: float
+    past_rounds: set[PastRoundIndex]
