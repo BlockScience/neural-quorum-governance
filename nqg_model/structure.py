@@ -42,7 +42,7 @@ NQG_MODEL_BLOCKS: list[dict] = [
         }
     },
     {
-        'label': 'Tally votes',
+        'label': 'Tally votes according to Neural Quorum Governance',
         'policies': {
             'tally votes': p_compute_votes
         },

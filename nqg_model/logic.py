@@ -95,7 +95,17 @@ def p_user_vote(params: NQGModelParams,
                  _2,
                  history: dict[int, dict[int, NQGModelState]], 
                  state: NQGModelState) -> Signal:
-    
+    """
+    Make new users decide on their actions: Abstain, Vote or Delegate
+
+    XXX: Bernoulli processes are used for all of the following:
+        - determining the probability of a user participating (actively or delegating) or not.
+        - determine whatever the user will actively vote or delegate
+        - determine if the user will vote on a project or not
+        - determine if the user will vote yes or no on a project 
+    XXX: Poisson processes are used for all of the following:
+        - determine how much delegatees an user will have if he opted to delegate 
+    """
     delegates: DelegationGraph = deepcopy(state['delegatees'])
     action_matrix: ActionMatrix = deepcopy(state['action_matrix'])
     decisions: dict[UserUUID, Action] = deepcopy(state['user_round_decisions'])
@@ -105,7 +115,6 @@ def p_user_vote(params: NQGModelParams,
                      in state['users'])
     
     previous_state_users = retrieve_prev_state_users(history)
-
 
     new_users = current_users - previous_state_users
 
@@ -137,9 +146,6 @@ def p_user_vote(params: NQGModelParams,
         else:
             decisions[user] = Action.Abstain
 
-
-
-
     return {'delegatees': delegates,
             'action_matrix': action_matrix, 
             'user_round_decisions': decisions}
@@ -147,6 +153,12 @@ def p_user_vote(params: NQGModelParams,
 
 
 def s_trust(params: NQGModelParams, _2, history, state: NQGModelState, _5) -> VariableUpdate:
+    """
+    Make new users trust each other
+
+    XXX: this is done by randomly sampling the set of previous users. The amount
+    of users to be trusted is sampled from a Poisson distribution.
+    """
     trustees: TrustGraph = deepcopy(state['trustees'])
     current_users = set(u.label 
                      for u 
@@ -164,6 +176,9 @@ def s_trust(params: NQGModelParams, _2, history, state: NQGModelState, _5) -> Va
     return ('trustees', trustees)
 
 def s_oracle_state(params: NQGModelParams, _2, _3, state: NQGModelState, _5) -> VariableUpdate:
+    """
+    Update the state of the oracles (eg. pagerank values & oracles/reputation weights)
+    """
     raw_graph = state['trustees']
 
     # Update Page rank values
@@ -192,6 +207,9 @@ def s_oracle_state(params: NQGModelParams, _2, _3, state: NQGModelState, _5) -> 
 
 
 def p_compute_votes(params: NQGModelParams, _2, _3, state: NQGModelState) -> Signal:
+    """
+    Perform Neural Quorum Governance
+    """
     action_vote_matrix: ActionMatrix = deepcopy(state['action_matrix'])
     per_project_voting: PerProjectVoting = deepcopy(state['per_project_voting'])
 
