@@ -1,6 +1,6 @@
 # neural-quroum-governance
 
-Repository for an cadCAD demo for Neural Quorum Governance
+Repository for an cadCAD demo on Neural Quorum Governance (NQG). This repository provides a cadCAD simulation for generating synthetic datasets for both user behavior (eg. what drives one to vote, delegate and trust?) and for the resulting outcomes from using pre-defined NQG parametrizations.
 
 ![Collage](assets/collage_nqg_demo.png "Title")
 *Visualizations from simulation-generated data by using this repo.*
@@ -12,8 +12,6 @@ Neural Quorum Governance (or NQG) is a novel voting-power attribution and delega
 Neural Governance (NG) is a modular, transparent and flexible architecture for defining a member's Voting Power towards projects in the ecosystem. Neural Governance utilizes the notion of Voting Neurons (composed of an Oracle and Weighting functions) that are layered and aggregated together to form a user’s Voting Power. A full specification, along with a user journey description and simulations for it, can be found in the Soroban Governance Modules Library.
 
 Quorum Delegation (QD) allows users to delegate their votes to private groups (called Quorums) of users that they trust and to place conditions on how much agreement among a Quorum is needed for vote delegation to occur. Users can use Quorum Delegation to manage their involvement in a vote and to protect themselves from rogue delegates by requiring a high level of agreement within their Quorums. It is inspired by Quorums in the Stellar Consensus Protocol and it stands as an innovation when compared to traditional methods of delegation, which tend to rely on individual delegates. A full specification can be found in the Soroban Governance Modules Library.
-
-This repository provides a cadCAD simulation for generating synthetic datasets for both user behavior (eg. what drives one to vote, delegate and trust?) and for the resulting outcomes from using pre-defined NQG parametrizations.
 
 ![Collage](assets/nqg.png "Title")
 *Neural Governance in a glance. In this stylized implementation, User Vote Power starts with a default voting power (such as zero), which gets replaced by the voting power that is computed by aggregating the Reputation and Past Voting Neurons weighted outputs. This is then fed to the Trust Neuron, which will then provide the Final User Vote Power.*
