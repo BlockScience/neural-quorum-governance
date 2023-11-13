@@ -137,12 +137,15 @@ def p_user_vote(params: NQGModelParams,
                 decisions[user] = Action.Delegate
                 mu = params['new_user_average_delegate_count'] - params['new_user_min_delegate_count']
                 delegate_count = poisson.rvs(mu, loc=params['new_user_min_delegate_count'])
-                
+                delegate_count += params['new_user_min_delegate_count']
                 if delegate_count > len(previous_state_users):
                     delegate_count = len(previous_state_users)
 
-                user_delegates = sample(previous_state_users, delegate_count)
-                delegates[user] = user_delegates
+                if delegate_count < params['new_user_min_delegate_count']:
+                    pass
+                else:
+                    user_delegates = sample(previous_state_users, delegate_count)
+                    delegates[user] = user_delegates
         else:
             decisions[user] = Action.Abstain
 
