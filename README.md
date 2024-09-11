@@ -1,4 +1,4 @@
-# neural-quroum-governance
+# neural-quorum-governance
 
 Repository for an cadCAD demo on Neural Quorum Governance (NQG). This repository provides a cadCAD simulation for generating synthetic datasets for both user behavior (eg. what drives one to vote, delegate and trust?) and for the resulting outcomes from using pre-defined NQG parametrizations.
 
