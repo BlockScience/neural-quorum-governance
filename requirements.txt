@@ -1,0 +1,12 @@
+cadCAD-legacy-devel
+cadCAD-tools
+millify
+numpy
+pandas
+ruamel.yaml
+streamlit
+plotly
+matplotlib
+numpy
+joblib
+dataclasses_json
